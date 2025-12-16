@@ -1,4 +1,4 @@
-# Install Flask
+# Required Installs
 pip install \
   flask \
   pytest \
