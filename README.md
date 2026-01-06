@@ -26,3 +26,59 @@ Fine-grained authorization can be enabled through LDAP integration. When enabled
 * Authorization policies are evaluated per tenant, per service, and per operation
 * Only authorized service executions are forwarded to the framework
 
+
+# Dynamic Multi-Tenant Service Platform – Design Diagram
+┌──────────────────────────┐
+│        Tenant Dev        │
+│  (Service Repository)    │
+└───────────┬──────────────┘
+            │ Commit
+            ▼
+┌──────────────────────────┐
+│     GitHub Actions       │
+│  (Per Tenant Pipeline)   │
+│                          │
+│ 1. Checkout tenant repo  │
+│ 2. Checkout framework    │
+│ 3. Install dependencies  │
+│ 4. Copy services + cfg   │
+│ 5. Build Docker image    │
+└───────────┬──────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────┐
+│   Tenant-Specific Docker Image (Immutable)  │
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │          Security Sidecar                │ │
+│ │  - AuthN / AuthZ                         │ │
+│ │  - Policy enforcement                   │ │
+│ │  - Optional LDAP integration             │ │
+│ └───────────────┬─────────────────────────┘ │
+│                 │ Authorized traffic         │
+│ ┌───────────────▼─────────────────────────┐ │
+│ │      Shared Framework Runtime            │ │
+│ │                                         │ │
+│ │  ┌──────────────┐   ┌────────────────┐ │ │
+│ │  │ Flask App    │──▶│ Controller     │ │ │
+│ │  └──────────────┘   └────────────────┘ │ │
+│ │          │                │              │ │
+│ │          │                ▼              │ │
+│ │          │        ┌────────────────┐    │ │
+│ │          │        │ Service Cache  │    │ │
+│ │          │        │ (in-memory)    │    │ │
+│ │          │        └──────┬─────────┘    │ │
+│ │          │               │               │ │
+│ │          │        ┌──────▼─────────┐    │ │
+│ │          │        │ ThreadPool     │    │ │
+│ │          │        │ Executor       │    │ │
+│ │          │        └──────┬─────────┘    │ │
+│ │          │               │               │ │
+│ │  ┌───────▼───────────────▼───────────┐ │ │
+│ │  │ Tenant Services (importlib-loaded)│ │ │
+│ │  │ services/<service>.py              │ │ │
+│ │  │ handle(context)                    │ │ │
+│ │  └───────────────────────────────────┘ │ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+
