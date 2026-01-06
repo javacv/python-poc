@@ -30,31 +30,37 @@ The architecture cleanly separates the shared execution engine from tenant-owned
 │                                             │
 │ ┌─────────────────────────────────────────┐ │
 │ │          Security Sidecar               │ │
-│ │  - AuthN / AuthZ                        │ │
-│ │  - Policy enforcement                   │ │
-│ │  - Optional LDAP integration            │ │
+│ │  - Request interception                 │ │
+│ │  - Coarse-grained policy enforcement    │ │
+│ │  - Traffic allow / deny                 │ │
 │ └───────────────┬─────────────────────────┘ │
 │                 │ Authorized traffic        │
 │ ┌───────────────▼─────────────────────────┐ │
 │ │      Shared Framework Runtime           │ │
 │ │                                         │ │
-│ │  ┌──────────────┐   ┌────────────────┐  │ │
-│ │  │ Flask App    │──▶│ Controller     │  │ │
-│ │  └──────────────┘   └────────────────┘  │ │
-│ │          │                │             │ │
-│ │          │                ▼             │ │
-│ │          │        ┌────────────────┐    │ │
-│ │          │        │ Service Cache  │    │ │
-│ │          │        │ (in-memory)    │    │ │
-│ │          │        └──────┬─────────┘    │ │
-│ │          │               │              │ │
-│ │          │        ┌──────▼─────────┐    │ │
-│ │          │        │ ThreadPool     │    │ │
-│ │          │        │ Executor       │    │ │
-│ │          │        └──────┬─────────┘    │ │
-│ │          │               │              │ │
-│ │  ┌───────▼───────────────▼───────────┐  │ │
-│ │  │ Tenant Services (importlib-loaded)│  │ │
+│ │  ┌──────────────┐                       │ │
+│ │  │ Flask App    │                       │ │
+│ │  └──────┬───────┘                       │ │
+│ │         │                               │ │
+│ │  ┌──────▼───────────────────────────┐   │ │
+│ │  │ Interceptors                     │   │ │
+│ │  │ - Request context enrichment     │   │ │
+│ │  │ - Fine-grained authorization     │   │ │
+│ │  │ - LDAP integration (optional)    │   │ │
+│ │  └──────┬───────────────────────────┘   │ │
+│ │         │                               │ │
+│ │  ┌──────▼────────────┐   ┌───────────┐  │ │
+│ │  │ Controller        │──▶│ Service   │  │ │
+│ │  │                   │   │ Cache     │  │ │
+│ │  └──────────────────-┘   └─────┬─────┘  │ │
+│ │                                │        │ │
+│ │                        ┌───────▼──────┐ │ │
+│ │                        │ ThreadPool   │ │ │
+│ │                        │ Executor     │ │ │
+│ │                        └───────┬──────┘ │ │
+│ │                                │        │ │
+│ │  ┌─────────────────────────────▼─────┐  │ │
+│ │  │ Tenant Services                   │  │ │
 │ │  │ services/<service>.py             │  │ │
 │ │  │ handle(context)                   │  │ │
 │ │  └───────────────────────────────────┘  │ │
